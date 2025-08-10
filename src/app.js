@@ -4,7 +4,7 @@ import cors from "cors";
 
 const app = express()
 app.use(cors({
-  origin: "https://events-scheduler.netlify.app/register", 
+  origin: "https://events-scheduler.netlify.app", 
   credentials: true
 }));
 app.use(express.json());
