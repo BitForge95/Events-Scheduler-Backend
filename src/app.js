@@ -1,15 +1,10 @@
-const cors = require('cors');
-const express = require('express');
+import express from "express";
+import cors from "cors";
+
 const app = express();
 
-const corsOptions = {
-  origin: 'https://events-scheduler.netlify.app',  
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],  
-  allowedHeaders: ['Content-Type', 'Authorization'],
-  optionsSuccessStatus: 204
-};
-
-app.use(cors(corsOptions));
+app.use(cors());
+app.use(express.json());
 
 
-app.options('*', cors(corsOptions));
+export { app }; 
