@@ -62,7 +62,7 @@ const updateEvent = asyncHandler(async(req, res) => {
         throw new ApiError(400,null,"Please enter all fields" )
     }
 
-    if(startDate > endDate) {
+    if(new Date(startDate) > new Date(endDate)) {
         throw new ApiError(403,null,"Please select a valid Date")
     }
 

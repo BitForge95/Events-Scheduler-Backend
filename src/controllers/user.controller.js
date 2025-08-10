@@ -1,96 +1,78 @@
 import dbConnect from "../lib/dbConnect.js";
 import { User } from "../models/user.model.js";
-import {UserEvent} from "../models/event.model.js"
-import jwt from "jsonwebtoken"
+import jwt from "jsonwebtoken";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import bcrypt from "bcryptjs";
 import { ApiResponse } from "../utils/apiResponse.js";
+import { ApiError } from "../utils/ApiError.js";
 
-const registerUser = asyncHandler( async(req, res) => {
-    //TODO: Hash the Refresh Token for further Security
+const registerUser = asyncHandler(async (req, res) => {
+  await dbConnect();
 
-    await dbConnect();
+  const { username, email, password } = req.body;
 
-    const {username, email, password} = req.body;
+  if (!username || !email || !password) {
+    throw new ApiError(400, null, "Username, email, and password are required");
+  }
 
-    const existingUserByUsername = await User.findOne({
-        username
-    });
-
-    const existingUserByEmail = await User.findOne({
-        email
-    })
+  const existingUserByUsername = await User.findOne({ username });
 
 
+  const existingUserByEmail = await User.findOne({ email });
 
-    if (existingUserByUsername) {
-        console.log("This Username is Already Taken. Please Choose Another one")
-        return res.status(400).json({ message: "Username already taken" });
-    }
+  if (existingUserByEmail) {
+    return res.status(409).json({ message: "You have already registered, please login" });
+  }
 
-    if (existingUserByEmail) {
-        return res.status(200).json({message: "You have already Registered, Please Login"})
-        //redirect the user to login Page
-    }
-    
-        //Add the token by using any Algo
+  if (existingUserByUsername) {
+    throw new ApiError(409, null, "Username already taken. Please try another one");
+  }
 
-        const hashedPassword = await bcrypt.hash(password,10);
-        const newUser = await User.create({
-            username,
-            email,
-            password: hashedPassword
-        });
+  const hashedPassword = await bcrypt.hash(password, 10);
 
-        await newUser.save();
+  const newUser = await User.create({
+    username,
+    email,
+    password: hashedPassword,
+  });
 
-        const safeUser = await User.findById(newUser._id).select("-password");
+  const safeUser = await User.findById(newUser._id).select("-password");
 
-        return res.status(201).json(
-            new ApiResponse(200, safeUser, "User registered Successfully")
-        )
-})
+  return res.status(201).json(new ApiResponse(201, safeUser, "User registered successfully"));
+});
 
-const loginUser = asyncHandler( async(req, res) => {
-    await dbConnect();
+const loginUser = asyncHandler(async (req, res) => {
+  await dbConnect();
 
-    const {username, password} = req.body;
+  const { username, password } = req.body;
 
-    if (!username || !password) {
-        throw new Error("Please Enter Username and Password");
-    }
+  if (!username || !password) {
+    throw new ApiError(400, null, "Please enter username and password");
+  }
 
-    const existingUser = await User.findOne({username});
+  const existingUser = await User.findOne({ username });
 
-    if(!existingUser) {
-        throw new Error("User does not exist. Please Register or Try again")
-    }
+  if (!existingUser) {
+    throw new ApiError(404, null, "User does not exist. Please register or try again");
+  }
 
-    const isPasswordCorrect = await bcrypt.compare(password, existingUser.password);
+  const isPasswordCorrect = await bcrypt.compare(password, existingUser.password);
 
-    if (!isPasswordCorrect) {
-        throw new Error("Invalid Credentials");
-    }
+  if (!isPasswordCorrect) {
+    throw new ApiError(401, null, "Incorrect password");
+  }
 
-    //TODO Generate a Refresh Token and provide it to the User
-    const accessToken = jwt.sign({ id: existingUser._id }, process.env.ACCESS_SECRET, { expiresIn: '15m' });
+  const accessToken = jwt.sign({ id: existingUser._id }, process.env.ACCESS_SECRET, { expiresIn: "15m" });
+
+  const loggedInUser = await User.findById(existingUser._id).select("-password");
 
 
-    //Remove Password and send it to the Database
-    const loggedInUser = await User.findById(existingUser._id).select("-password")
-
-
-    return res.status(200).json(
+  return res.status(200).json(
     new ApiResponse(200, {
-        user: loggedInUser,
-        accessToken,
-    }, "User Logged In Successfully")
-    );
+      user: loggedInUser,
+      accessToken,
+    }, "User logged in successfully")
+  );
+});
 
-})
-
-
-
-
-export {registerUser, loginUser}
-
+export { registerUser, loginUser };

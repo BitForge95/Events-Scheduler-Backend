@@ -9,7 +9,7 @@ router.route("/register").post(registerUser)
 router.route("/login").post(loginUser)
 router.route("/create").post(authMiddleware,createEvent)
 router.route("/read").get(authMiddleware,readEvent)
-router.route("/update/:id").patch(authMiddleware,updateEvent)
+router.route("/update/:id").put(authMiddleware,updateEvent)
 router.route("/delete/:id").delete(authMiddleware,deleteEvent)
 
 export default router
